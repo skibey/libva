@@ -568,6 +568,14 @@ typedef union _VAConfigAttribValDecJPEG {
 } VAConfigAttribValDecJPEG;
 /**@}*/
 
+/** @name Attribute values for VAConfigAttribDecSliceMode */
+/**@{*/
+/** \brief Driver supports normal mode for slice decoding */
+#define VA_DEC_SLICE_MODE_NORMAL       0x00000001
+/** \brief Driver supports base mode for slice decoding */
+#define VA_DEC_SLICE_MODE_BASE         0x00000002
+/**@}*/
+
 /** @name Attribute values for VAConfigAttribEncPackedHeaders */
 /**@{*/
 /** \brief Driver does not support any packed headers mode. */
@@ -1688,7 +1696,14 @@ This is simplely a buffer containing raw bit-stream bytes
 typedef struct _VAPictureH264
 {
     VASurfaceID picture_id;
+    /*
+     * frame_idx is long_term_frame_idx for long term reference picture,
+     * and frame_num for short term reference picture.
+     */
     unsigned int frame_idx;
+    /* 
+     * see flags below. 
+     */
     unsigned int flags;
     signed int TopFieldOrderCnt;
     signed int BottomFieldOrderCnt;
@@ -1699,6 +1714,7 @@ typedef struct _VAPictureH264
 #define VA_PICTURE_H264_BOTTOM_FIELD		0x00000004
 #define VA_PICTURE_H264_SHORT_TERM_REFERENCE	0x00000008
 #define VA_PICTURE_H264_LONG_TERM_REFERENCE	0x00000010
+#define VA_PICTURE_H264_NON_EXISTING		0x00000020
 
 /** H.264 Picture Parameter Buffer */
 /* 
@@ -1753,6 +1769,12 @@ typedef struct _VAPictureParameterBufferH264
         unsigned int value;
     } pic_fields;
     unsigned short frame_num;
+    /*
+     * The following two fields will be used for base mode slice decoding. 
+     * For normal mode the fields in the slice parameter structure will be used.
+     */ 
+    unsigned char num_ref_idx_l0_active_minus1;
+    unsigned char num_ref_idx_l1_active_minus1;
 } VAPictureParameterBufferH264;
 
 /** H.264 Inverse Quantization Matrix Buffer */
@@ -1774,7 +1796,20 @@ typedef struct _VAIQMatrixBufferH264
  * in raster scan order
  */ 
 
-/** H.264 Slice Parameter Buffer */
+/**
+ * H.264 Slice Parameter Buffer for base mode decoding
+ */
+typedef struct _VASliceParameterBufferBaseH264
+{
+    unsigned int slice_data_size;/* number of bytes in the slice data buffer for this slice */
+    /** \brief Byte offset to the NAL Header Unit for this slice. */
+    unsigned int slice_data_offset;
+    unsigned int slice_data_flag; /* see VA_SLICE_DATA_FLAG_XXX defintions */
+} VASliceParameterBufferH264Base;
+
+/*
+ * H.264 Slice Parameter Buffer for normal mode decoding
+ */
 typedef struct _VASliceParameterBufferH264
 {
     unsigned int slice_data_size;/* number of bytes in the slice data buffer for this slice */
