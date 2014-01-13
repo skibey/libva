@@ -322,6 +322,29 @@ typedef enum
     VAConfigAttribEncryption		= 4,
     VAConfigAttribRateControl		= 5,
 
+    /** @name Attributes for decoding */
+    /**@{*/
+    /**
+     * \brief Slice Decoding mode. Read/write.
+     *
+     * This attribute determines what mode the driver supports for slice
+     * decoding, through vaGetConfigAttributes(); and what mode the user
+     * will be providing to the driver, through vaCreateConfig(), if the
+     * driver supports those. If this attribute is not set by the user then
+     * it is assumed that VA_DEC_SLICE_MODE_NORMAL mode is used. 
+     *
+     * See \c VA_DEC_SLICE_MODE_xxx for the list of slice decoding modes.
+     */
+    VAConfigAttribDecSliceMode		= 6,
+   /**
+     * \brief JPEG decoding attribute. Read-only.
+     *
+     * This attribute exposes a number of capabilities of the underlying
+     * JPEG implementation. The attribute value is partitioned into fields as defined in the 
+     * VAConfigAttribValDecJPEG union.
+     */
+    VAConfigAttribDecJPEG             = 7,
+
     /** @name Attributes for encoding */
     /**@{*/
     /**
@@ -408,6 +431,73 @@ typedef enum
      * that can be configured. e.g. a value of 2 means there are two distinct quality levels. 
      */
     VAConfigAttribEncQualityRange     = 21,
+
+    /**
+     * \brief Encoding quantization attribute. Read-only.
+     *
+     * This attribute conveys whether the driver supports certain types of quantization methods
+     * for encoding (e.g. trellis).
+     */
+    VAConfigAttribEncQuantization     = 22,
+    /**
+     * \brief Encoding intra refresh attribute. Read-only.
+     *
+     * This attribute conveys whether the driver supports certain types of intra refresh methods
+     * for encoding (e.g. adaptive intra refresh or rolling intra refresh). 
+     */
+    VAConfigAttribEncIntraRefresh     = 23,
+    /**
+     * \brief Encoding skip frame attribute. Read-only.
+     *
+     * This attribute conveys whether the driver supports sending skip frame parameters 
+     * (VAEncMiscParameterTypeSkipFrame) to the encoder's rate control, when the user has 
+     * externally skipped frames.  It is a boolean value 0 - unsupported, 1 - supported.
+     */
+    VAConfigAttribEncSkipFrame        = 24,
+    /**
+     * \brief Encoding region-of-interest (ROI) attribute. Read-only.
+     *
+     * This attribute conveys whether the driver supports region-of-interest (ROI) encoding,
+     * based on user provided ROI rectangles.  The attribute value returned indicates the number
+     * of regions that are supported.  e.g. A value of 0 means ROI encoding is not supported.
+     * If ROI encoding is supported, the ROI information is passed to the driver using
+     * VAEncMiscParameterTypeRoi.
+     */
+    VAConfigAttribEncRoi              = 25,
+    /**
+     * \brief Encoding extended rate control attribute. Read-only.
+     *
+     * This attribute conveys whether the driver supports any extended rate control features
+     * The attribute value is partitioned into fields as defined in the 
+     * VAConfigAttribValEncRateControlExt union.
+     */
+    VAConfigAttribEncRateControlExt   = 26,
+    /**
+     * \brief Intel specific attributes start at 1001 
+     */
+    /**
+     * \brief Encode function type.
+     *
+     * This attribute conveys whether the driver supports different function types for encode. 
+     * It can be ENC, PAK, or ENC + PAK. Currently it is for FEI entry point only. 
+     * Default is ENC + PAK.
+     */
+    VAConfigAttribEncFunctionTypeIntel = 1001,
+    /**
+     * \brief Maximum number of MV predictors. Read-only.
+     *
+     * This attribute determines the maximum number of MV predictors the driver 
+     * can support to encode a single frame. 0 means no MV predictor is supported.
+     */
+    VAConfigAttribEncMVPredictorsIntel,
+    /**
+     * \brief Statistics attribute. Read-only.
+     *
+     * This attribute exposes a number of capabilities of the VAEntrypointStatistics entry 
+     * point. The attribute value is partitioned into fields as defined in the 
+     * VAConfigAttribValStatistics union.
+     */
+    VAConfigAttribStatisticsIntel,
     /**@}*/
     VAConfigAttribTypeMax
 } VAConfigAttribType;
@@ -449,6 +539,30 @@ typedef struct _VAConfigAttrib {
 #define VA_RC_CQP                       0x00000010
 /** \brief Variable bitrate with peak rate higher than average bitrate. */
 #define VA_RC_VBR_CONSTRAINED           0x00000020
+/** \brief Intelligent Constant Quality. Provided an initial ICQ_quality_factor, 
+ *  adjusts QP at a frame and MB level based on motion to improve subjective quality. */
+#define VA_RC_ICQ			0x00000040
+/** \brief Macroblock based rate control.  Per MB control is decided 
+ *  internally in the encoder. It may be combined with other RC modes, except CQP. */
+#define VA_RC_MB                        0x00000080
+
+/**@}*/
+
+/** @name Attribute values for VAConfigAttribDecSliceMode */
+/**@{*/
+/** \brief Driver supports normal mode for slice decoding */
+#define VA_DEC_SLICE_MODE_NORMAL       0x00000001
+/** \brief Driver supports base mode for slice decoding */
+#define VA_DEC_SLICE_MODE_BASE         0x00000002
+
+/** @name Attribute values for VAConfigAttribDecJPEG */
+/**@{*/
+typedef union _VAConfigAttribValDecJPEG {
+    /** \brief Set to (1 << VA_ROTATION_xxx) for supported rotation angles. */
+    unsigned int rotation;
+    /** \brief Reserved for future use. */
+    unsigned int reserved[3]; 
+} VAConfigAttribValDecJPEG;
 /**@}*/
 
 /** @name Attribute values for VAConfigAttribEncPackedHeaders */
@@ -2515,6 +2629,16 @@ typedef enum
 } VADisplayAttribBLEMode;
 
 /** attribute value for VADisplayAttribRotation   */
+
+/**
+ * @name Rotation angles
+ *
+ * Those values could be used for VADisplayAttribRotation attribute or
+ * VAProcPipelineParameterBuffer::rotation_state or in VAConfigAttribValDecJPEG. 
+ * The rotation operation is clockwise.
+ */
+/**@{*/
+/** \brief No rotation. */
 #define VA_ROTATION_NONE        0x00000000
 #define VA_ROTATION_90          0x00000001
 #define VA_ROTATION_180         0x00000002
